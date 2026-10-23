@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CTTA Playtest Logbook</title>
+<meta name="theme-color" content="#1C2230">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Logbook">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout: phone-first logbook. Sticky round/phase bar, tab strip, then one working panel. */
+:root {
+  --bg: #EDE6D6; --card: #FBF8F1; --ink: #1C2230; --muted: #5E6470; --line: #D6CCB6;
+  --accent: #B5791F; --accent-ink: #FFFFFF; --ok: #3E6B3A; --warn: #A3502C;
+  --ivory: #F3EEE2; --mustard: #E2B13C; --crimson: #B7312C; --violet: #5B3F8C;
+  --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --body: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17191F; --card: #21242C; --ink: #ECE6D8; --muted: #A2A6AF; --line: #353946;
+  --accent: #E0A84A; --accent-ink: #17191F; --ok: #8DBF7E; --warn: #E0875E; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17191F; --card: #21242C; --ink: #ECE6D8; --muted: #A2A6AF; --line: #353946;
+  --accent: #E0A84A; --accent-ink: #17191F; --ok: #8DBF7E; --warn: #E0875E; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.4;
+  padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 0 80px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px 8px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--line); }
+.phasebar { display: flex; align-items: center; gap: 8px; }
+.phase { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.phase .r { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.phase .p { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.1; }
+.btn { border: 1.5px solid var(--ink); background: transparent; border-radius: 6px; padding: 8px 12px; font-weight: 600; min-height: 42px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.small { min-height: 34px; padding: 4px 10px; font-size: 14px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tabs button { border: 0; background: transparent; border-bottom: 3px solid transparent; padding: 6px 2px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.status { font-size: 12px; color: var(--muted); min-height: 1em; }
+.status.bad { color: var(--warn); }
+
+.panel { display: flex; flex-direction: column; gap: 14px; padding-top: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 4px 0 0; font-weight: 600; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+.players { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.pchip { border: 2px solid var(--line); border-radius: 8px; padding: 8px 2px; font-weight: 700; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: var(--card); min-width: 0; }
+.pchip .dot { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--ink); }
+.pchip span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pchip[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+
+.types { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; }
+.tbtn { border: 1px solid var(--line); background: var(--card); border-radius: 6px; padding: 10px 8px; text-align: left; font-weight: 600; min-height: 48px; }
+.tbtn.now { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 7px 12px; font-size: 14px; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .flabel { font-weight: 600; font-size: 14px; }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { width: 44px; height: 44px; border-radius: 6px; border: 1.5px solid var(--ink); background: transparent; font-size: 22px; font-weight: 700; line-height: 1; }
+.stepper input { width: 72px; height: 44px; text-align: center; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-family: var(--mono); font-size: 18px; }
+textarea, input[type=text], select { width: 100%; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); padding: 10px; }
+textarea { min-height: 76px; resize: vertical; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row > * { min-width: 0; }
+.grow { flex: 1; }
+
+.sheet-bg { position: fixed; inset: 0; background: rgba(10, 12, 16, .45); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--card); width: 100%; max-width: 720px; max-height: 88vh; overflow-y: auto; border-radius: 14px 14px 0 0; padding: 16px max(16px, env(safe-area-inset-left, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 14px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sheet-foot { display: flex; gap: 8px; position: sticky; bottom: calc(-16px - env(safe-area-inset-bottom, 0px)); background: var(--card); padding-block: 10px; }
+.sheet-foot .btn { flex: 1; }
+
+.log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.log li { display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: start; padding: 9px 0; border-top: 1px solid var(--line); }
+.log li:first-child { border-top: 0; }
+.log .bar { width: 10px; align-self: stretch; border-radius: 3px; border: 1px solid var(--line); }
+.log .what { min-width: 0; overflow-wrap: anywhere; }
+.log .meta { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.log .phase-ev { color: var(--accent); font-weight: 700; }
+.x { border: 0; background: transparent; color: var(--muted); font-size: 13px; text-decoration: underline; padding: 4px; }
+.rhead { font-family: var(--display); font-weight: 600; font-size: 16px; margin: 10px 0 2px; }
+
+.snap { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.snap th, .snap td { padding: 6px 4px; text-align: left; }
+.snap th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.snap input { width: 100%; min-width: 0; height: 40px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); text-align: center; font-family: var(--mono); }
+.tablewrap { overflow-x: auto; }
+
+.likert { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.likert button { border: 1px solid var(--line); background: var(--card); border-radius: 6px; height: 44px; font-family: var(--mono); font-weight: 600; }
+.likert button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); gap: 8px; }
+.q { display: flex; flex-direction: column; gap: 6px; padding-block: 10px; border-top: 1px dashed var(--line); }
+.q:first-of-type { border-top: 0; }
+.na { justify-self: start; }
+.done-pill { font-size: 12px; font-weight: 700; color: var(--ok); }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.gamerow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); }
+.gamerow:first-child { border-top: 0; }
+.gamerow .gname { font-weight: 700; }
+.gamerow .gmeta { font-size: 13px; color: var(--muted); }
+.badge-now { font-size: 12px; font-weight: 700; color: var(--ok); }
+.warnbar { background: var(--card); border: 1px solid var(--warn); color: var(--ink); border-radius: 8px; padding: 10px 12px; font-size: 14px; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <div class="phasebar">
+      <div class="phase"><span class="r" id="roundLbl">Not started</span><span class="p" id="phaseLbl">Setup</span></div>
+      <button class="btn small" id="prevPhase" aria-label="Previous phase">◀</button>
+      <button class="btn primary" id="nextPhase">Next phase ▶</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="log" aria-selected="true">Log</button>
+      <button role="tab" data-tab="timeline" aria-selected="false">Timeline</button>
+      <button role="tab" data-tab="scores" aria-selected="false">Scores</button>
+      <button role="tab" data-tab="feedback" aria-selected="false">Feedback</button>
+      <button role="tab" data-tab="setup" aria-selected="false">Setup</button>
+    </div>
+    <div class="status" id="status">Connecting…</div>
+  </div>
+
+  <!-- LOG -->
+  <div class="panel" id="tab-log">
+    <div class="warnbar" id="exportNag" hidden><span id="exportNagText">Not exported yet.</span><button class="btn small" id="exportNow">Export this game</button></div>
+    <div class="card">
+      <h2>Who?</h2>
+      <div class="players" id="pickPlayer"></div>
+    </div>
+    <div class="card">
+      <h2>What happened?</h2>
+      <div id="typeGroups"></div>
+    </div>
+    <div class="card">
+      <div class="row"><h2 class="grow">Latest</h2><button class="btn small" data-goto="timeline">All entries</button></div>
+      <ul class="log" id="recent"></ul>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="panel" id="tab-timeline" hidden>
+    <div class="card">
+      <h2>Timeline</h2>
+      <p class="hint">Every entry, newest round first. Remove a wrong entry and log it again.</p>
+      <div id="timeline"></div>
+    </div>
+  </div>
+
+  <!-- SCORES -->
+  <div class="panel" id="tab-scores" hidden>
+    <div class="card">
+      <div class="row"><h2 class="grow">End-of-round snapshot</h2>
+        <select id="snapRound" aria-label="Round" style="width:auto"></select></div>
+      <p class="hint">After each Upkeep, enter for each player the points they gained this round from each source, plus the score on the track, Wealth and workers. Use “Final” for the end-of-game scoring.</p>
+      <div class="players" id="snapPlayer" style="grid-template-columns:repeat(4,1fr)"></div>
+      <div id="snapForm"></div>
+      <button class="btn primary" id="saveSnap">Save snapshot (all players)</button>
+    </div>
+    <div class="card">
+      <h2>Score track by round</h2>
+      <p class="hint">Score on the track. A ⚠ means it doesn’t match the starting points (10–13 by seat) plus the points entered by source. Building and Landmark points join the track total only in the Final row.</p>
+      <div class="tablewrap"><table class="snap" id="scoreHistory"></table></div>
+    </div>
+    <div class="card">
+      <h2>Points by source (whole game)</h2>
+      <div class="tablewrap"><table class="snap" id="sourceTotals"></table></div>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div class="panel" id="tab-feedback" hidden>
+    <div class="card">
+      <h2>Player feedback</h2>
+      <p class="hint">Hand the phone to each player in turn. About 5 minutes. Answers save to their colour on this phone, and they can come back and change them.</p>
+      <div class="players" id="fbPlayer"></div>
+    </div>
+    <div id="fbForm"></div>
+  </div>
+
+  <!-- SETUP -->
+  <div class="panel" id="tab-setup" hidden>
+    <div class="card">
+      <h2>Game</h2>
+      <div class="field"><label for="gameName">Playtest name</label><input type="text" id="gameName" placeholder="Playtest 1"></div>
+      <div class="field"><span class="flabel">Founding-site side</span><div class="chips" id="sideChips"></div></div>
+      <div class="field"><label for="firstPlayer">First player in round 1</label><select id="firstPlayer"></select><p class="hint">Seat 1 is the first player, then clockwise. Starting points: seat 1 = 10, seat 2 = 11, seat 3 = 12, seat 4 = 13.</p></div>
+      <div id="playerSetup"></div>
+      <button class="btn primary" id="saveSetup">Save setup</button>
+    </div>
+    <div class="card">
+      <h2>Games on this phone</h2>
+      <p class="hint">Everything is saved on this phone only, even offline. <b>Export each game after the session</b>: it makes a game file (.json) to keep in Drive or email to yourself, plus two spreadsheets (.csv). Send the .json to Claude for the playtest report.</p>
+      <div id="gameList"></div>
+      <div class="row"><input type="text" id="newGameName" class="grow" placeholder="Playtest 2" style="flex:1" aria-label="Name for a new playtest"><button class="btn" id="newGame">Start new game</button></div>
+      <div class="row"><label class="btn" for="importFile" style="display:inline-flex;align-items:center">Import a game file</label><input type="file" id="importFile" accept=".json,application/json" hidden><span class="hint">Restores an exported game, for example on a new phone.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet-bg" id="sheetBg" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head"><h2 id="sheetTitle">Entry</h2><span class="meta" id="sheetWho"></span></div>
+    <div id="sheetBody" style="display:flex;flex-direction:column;gap:14px"></div>
+    <div class="sheet-foot"><button class="btn" id="sheetCancel">Cancel</button><button class="btn primary" id="sheetSave">Save</button></div>
+  </div>
+</div>
+
+<script>
+/* ---------- Game data (from RULEBOOK and 09_components) ---------- */
+const COLORS = [
+  { id: 'Ivory', hex: 'var(--ivory)' }, { id: 'Mustard', hex: 'var(--mustard)' },
+  { id: 'Crimson', hex: 'var(--crimson)' }, { id: 'Violet', hex: 'var(--violet)' }
+];
+const SITES = ['River Town', 'Harbour Village', 'Hill Fort', 'Forest Edge', 'Open Plains'];
+const PHASES = ['Reveal', 'Land', 'Build', 'Work', 'Trade', 'Upkeep'];
+const ROUNDS = 14;
+const eraOf = r => r <= 5 ? 'Era I' : r <= 10 ? 'Era II' : 'Era III';
+const TERRAIN = ['Plains', 'Forest', 'Hills', 'River', 'Coast', 'Plains Oilfield', 'Coast Oilfield'];
+const RES = ['Food', 'Timber', 'Stone', 'Ore', 'Cloth', 'Tools', 'Textiles', 'Coal', 'Steel', 'Machinery', 'Garments', 'Oil', 'Consumer Goods', 'Automobiles'];
+const REGIONS = ['Heartland', 'Frontier', 'Overseas'];
+const BUILDINGS = {
+  'Housing': ['Hut', 'House', 'Tenement', 'Tower Block', 'Suburbs'],
+  'Producers': ['Farm', 'Pasture', 'Timber Camp', 'Quarry', 'Mine', 'Coal Pit', 'Oil Well'],
+  'Industries': ['Workshop', 'Weaver', 'Steelworks', 'Factory', 'Motor Works'],
+  'Trade and civic': ['Market', 'Harbour', 'Shrine', 'Exchange', 'City Hall', 'Railway Station', 'Airport', 'Department Store'],
+  'Energy': ['Coal Power Plant', 'Renewable Plant'],
+  'Landmarks': ['World Bank', 'Grand Exhibition Hall', 'Opera House', 'University', 'Central Station', 'Cathedral', 'City Park', 'Stock Exchange', 'Grand Motor Show']
+};
+const UPGRADES = ['Mechanise producer', 'Workshop → Machine Shop', 'Weaver → Textile Mill', 'Harbour → Shipyard', 'Modern marker', 'Coal Power Plant on Coal Pit', 'Energy placed'];
+const NPC_CARDS = {"1": [{"id": "I-H1", "r": "Heartland", "city": "Millbrook", "want": "2 Tools", "sp": ""}, {"id": "I-H2", "r": "Heartland", "city": "Farmsteads", "want": "2 Tools", "sp": ""}, {"id": "I-H3", "r": "Heartland", "city": "Stonebridge", "want": "3 Stone", "sp": ""}, {"id": "I-H4", "r": "Heartland", "city": "Granary Town", "want": "2 Stone", "sp": ""}, {"id": "I-H5", "r": "Heartland", "city": "Smiths' Guild", "want": "3 Ore", "sp": ""}, {"id": "I-H6", "r": "Heartland", "city": "Mills of Ashby", "want": "3 Timber", "sp": ""}, {"id": "I-H7", "r": "Heartland", "city": "Oakford", "want": "3 Timber", "sp": ""}, {"id": "I-H8", "r": "Heartland", "city": "Market Town", "want": "2 Timber", "sp": ""}, {"id": "I-H9", "r": "Heartland", "city": "Spring Fair", "want": "2 Textiles", "sp": ""}, {"id": "I-F1", "r": "Frontier", "city": "Mining Camp", "want": "4 Food", "sp": ""}, {"id": "I-F2", "r": "Frontier", "city": "Hill Garrison", "want": "2 Food", "sp": ""}, {"id": "I-F3", "r": "Frontier", "city": "Drywell", "want": "3 Food", "sp": ""}, {"id": "I-F4", "r": "Frontier", "city": "Lumber Camp", "want": "3 Food", "sp": ""}, {"id": "I-F5", "r": "Frontier", "city": "Frontier Settlers", "want": "2 Tools", "sp": ""}, {"id": "I-F6", "r": "Frontier", "city": "Winter Camp", "want": "3 Cloth", "sp": ""}, {"id": "I-F7", "r": "Frontier", "city": "Walled Town", "want": "3 Stone", "sp": ""}, {"id": "I-F8", "r": "Frontier", "city": "Trappers' Post", "want": "3 Cloth", "sp": ""}, {"id": "I-F9", "r": "Frontier", "city": "Prospectors", "want": "2 Tools", "sp": ""}, {"id": "I-O1", "r": "Overseas", "city": "Noble Court of Elis", "want": "2 Textiles", "sp": ""}, {"id": "I-O2", "r": "Overseas", "city": "Dyers of Ammar", "want": "3 Textiles", "sp": ""}, {"id": "I-O3", "r": "Overseas", "city": "Great Market of Sarn", "want": "3 Timber", "sp": ""}, {"id": "I-O4", "r": "Overseas", "city": "Saltmarsh", "want": "4 Food", "sp": ""}, {"id": "I-O5", "r": "Overseas", "city": "Shipwrights of Varo", "want": "3 Timber", "sp": ""}, {"id": "I-O6", "r": "Overseas", "city": "Foundry of Kessa", "want": "3 Ore", "sp": ""}, {"id": "I-O7", "r": "Overseas", "city": "Weavers of Tolm", "want": "4 Cloth", "sp": ""}], "2": [{"id": "II-H1", "r": "Heartland", "city": "Mill Valley", "want": "2 Machinery", "sp": ""}, {"id": "II-H2", "r": "Heartland", "city": "Plough Works", "want": "3 Tools", "sp": ""}, {"id": "II-H3", "r": "Heartland", "city": "Cotton Exchange", "want": "4 Cloth", "sp": ""}, {"id": "II-H4", "r": "Heartland", "city": "Ironmongers' Row", "want": "4 Ore", "sp": ""}, {"id": "II-H5", "r": "Heartland", "city": "County Fair", "want": "3 Garments", "sp": ""}, {"id": "II-H6", "r": "Heartland", "city": "Grand Junction", "want": "7 Steel", "sp": "rail"}, {"id": "II-H7", "r": "Heartland", "city": "Canal Basin", "want": "8 Ore", "sp": "rail"}, {"id": "II-H8", "r": "Heartland", "city": "Weavers' Hall", "want": "3 Textiles", "sp": ""}, {"id": "II-F1", "r": "Frontier", "city": "Coal Town", "want": "4 Food", "sp": ""}, {"id": "II-F2", "r": "Frontier", "city": "Iron Gap", "want": "3 Food", "sp": ""}, {"id": "II-F3", "r": "Frontier", "city": "Garrison Barracks", "want": "3 Garments", "sp": ""}, {"id": "II-F4", "r": "Frontier", "city": "Pit Head", "want": "6 Timber", "sp": "rail"}, {"id": "II-F5", "r": "Frontier", "city": "Railhead Camp", "want": "8 Food", "sp": "rail"}, {"id": "II-F6", "r": "Frontier", "city": "Bridge Works", "want": "6 Steel", "sp": "rail"}, {"id": "II-F7", "r": "Frontier", "city": "Settlers' Depot", "want": "4 Tools", "sp": ""}, {"id": "II-F8", "r": "Frontier", "city": "Smelter Row", "want": "4 Ore", "sp": ""}, {"id": "II-O1", "r": "Overseas", "city": "Colonial Outfitters", "want": "3 Garments", "sp": ""}, {"id": "II-O2", "r": "Overseas", "city": "Silk Road Merchants", "want": "3 Textiles", "sp": ""}, {"id": "II-O3", "r": "Overseas", "city": "Engine Importers of Vell", "want": "2 Machinery", "sp": ""}, {"id": "II-O4", "r": "Overseas", "city": "Shipyards of Quen", "want": "4 Ore", "sp": ""}, {"id": "II-O5", "r": "Overseas", "city": "Steamship Line", "want": "5 Coal", "sp": ""}, {"id": "II-O6", "r": "Overseas", "city": "Spice Isles", "want": "5 Food", "sp": ""}, {"id": "II-CH", "r": "Heartland", "city": "Royal Agricultural Society", "want": "5 Machinery", "sp": "charter"}, {"id": "II-CF", "r": "Frontier", "city": "Imperial Railway Company", "want": "6 Steel", "sp": "charter"}, {"id": "II-CO", "r": "Overseas", "city": "East Sea Trading Charter", "want": "5 Garments", "sp": "charter"}], "3": [{"id": "III-H1", "r": "Heartland", "city": "Garden Suburb", "want": "3 Consumer Goods", "sp": ""}, {"id": "III-H2", "r": "Heartland", "city": "Motor Town", "want": "2 Automobiles", "sp": ""}, {"id": "III-H3", "r": "Heartland", "city": "City Markets", "want": "8 Food", "sp": "rail"}, {"id": "III-H4", "r": "Heartland", "city": "Commuter Council", "want": "4 Oil", "sp": ""}, {"id": "III-H5", "r": "Heartland", "city": "High Street", "want": "4 Garments", "sp": ""}, {"id": "III-F1", "r": "Frontier", "city": "Oilfield Camp", "want": "5 Food", "sp": ""}, {"id": "III-F2", "r": "Frontier", "city": "Tractor Depot", "want": "2 Automobiles", "sp": ""}, {"id": "III-F3", "r": "Frontier", "city": "Steel Valley", "want": "8 Steel", "sp": "rail"}, {"id": "III-F4", "r": "Frontier", "city": "Refinery Run", "want": "8 Oil", "sp": "rail"}, {"id": "III-F5", "r": "Frontier", "city": "Mining Combine", "want": "2 Machinery", "sp": ""}, {"id": "III-O1", "r": "Overseas", "city": "Global Container Line", "want": "10 Consumer Goods", "sp": "container"}, {"id": "III-O2", "r": "Overseas", "city": "Car Carrier Fleet", "want": "8 Automobiles", "sp": "container"}, {"id": "III-O3", "r": "Overseas", "city": "Tanker Convoy", "want": "10 Oil", "sp": "container"}, {"id": "III-O4", "r": "Overseas", "city": "Bulk Steel Freight", "want": "8 Steel", "sp": "container"}, {"id": "III-O5", "r": "Overseas", "city": "Grand Bazaar of Omar", "want": "3 Consumer Goods", "sp": ""}, {"id": "III-O6", "r": "Overseas", "city": "Export Motors of Ryn", "want": "2 Automobiles", "sp": ""}, {"id": "III-O7", "r": "Overseas", "city": "Fashion Capital of Lisse", "want": "3 Garments", "sp": ""}, {"id": "III-CH", "r": "Heartland", "city": "National Retail Charter", "want": "6 Consumer Goods", "sp": "charter"}, {"id": "III-CF", "r": "Frontier", "city": "Continental Railway Charter", "want": "6 Machinery", "sp": "charter"}, {"id": "III-CO", "r": "Overseas", "city": "World Fair Commission", "want": "4 Automobiles", "sp": "charter"}]};
+const ERA_GOALS = {"1": ["Founding Charter", "Land Grant", "Master Craftsman", "Across the Sea", "Varied Harvest", "Known Name", "Holy Ground", "Weavers' Guild", "Smiths' Row", "Granary", "Good Reputation", "Woodland Estate", "Hill Town", "Wool Town", "Treasury"], "2": ["The Iron Road", "First Steel", "Bulk Haul", "Steam Fields", "Ready-Made", "Trusted House", "Civic Pride", "Grand Exchange", "Heartland Favourite", "Frontier Favourite", "Industrial Quarter", "Mechanised Country", "Working City", "Coal Country", "Mill Town"], "3": ["City of Wonders", "Black Gold", "Global Port", "Power Grid", "Assembly Line", "Modern Farming", "Skyline", "Charter Company", "Fashion House", "Motor Age", "Power City", "Metropolis", "World Trader", "Motor City", "Commuter Belt", "Diverse Economy", "Rag Trade"]};
+const LANDMARK_NAMES = ["World Bank", "Grand Exhibition Hall", "Opera House", "University", "Central Station", "Cathedral", "City Park", "Stock Exchange", "Grand Motor Show"];
+const NOTE_KINDS = ['Rule question', 'Confusion', 'Rule changed on the fly', 'Idea', 'Fun moment', 'Slow or stuck', 'Other'];
+
+/* Field kinds: enum (chips), num (stepper), bool, text. `req` = must be filled. */
+const F = {
+  terrain: { label: 'Terrain', kind: 'enum', options: TERRAIN, req: true },
+  on: { label: 'Built on', kind: 'enum', options: TERRAIN },
+  building: { label: 'Building', kind: 'groups', groups: BUILDINGS, req: true },
+  upgrade: { label: 'Upgrade', kind: 'enum', options: UPGRADES, req: true },
+  resource: { label: 'Resource', kind: 'enum', options: RES, req: true },
+  qty: { label: 'How many', kind: 'num', def: 1, min: 1 },
+  price: { label: 'Price each (Wealth)', kind: 'num', def: 0, min: 0 },
+  paid: { label: 'Wealth paid in total', kind: 'num', def: 0, min: 0 },
+  partner: { label: 'With which player', kind: 'partner', req: true },
+  region: { label: 'Region', kind: 'enum', options: REGIONS, req: true },
+  completed: { label: 'Card completed?', kind: 'bool' },
+  points: { label: 'Points', kind: 'num', def: 0, min: -50 },
+  amount: { label: 'Trust gained', kind: 'num', def: 1, min: -10 },
+  mode: { label: 'Action', kind: 'enum', options: ['Demolish', 'Relocate'], req: true },
+  goal: { label: 'Goal name', kind: 'text' },
+  noteKind: { label: 'Kind of note', kind: 'enum', options: NOTE_KINDS, req: true },
+  note: { label: 'Note (optional)', kind: 'text' },
+  tiles: { label: 'Tiles that came out of the bag', kind: 'counts', options: TERRAIN, req: true },
+  card: { label: 'Card', kind: 'card', req: true },
+  winner: { label: 'Completed by (optional)', kind: 'enum', options: ['Ivory', 'Mustard', 'Crimson', 'Violet'] },
+  landmarks: { label: 'Landmarks revealed', kind: 'multi', options: LANDMARK_NAMES, req: true },
+  goals: { label: 'Goals revealed', kind: 'multi', optionsFn: () => ERA_GOALS[eraNum()], req: true },
+  freeTile: { label: 'Terrain of the removed tile', kind: 'enum', options: TERRAIN, req: true }
+};
+const TYPES = [
+  { id: 'land', phase: 'Land', label: 'Bought land', fields: ['terrain', 'qty', 'paid', 'note'] },
+  { id: 'build', phase: 'Build', label: 'Built', fields: ['building', 'on', 'note'] },
+  { id: 'upgrade', phase: 'Build', label: 'Upgraded', fields: ['upgrade', 'note'] },
+  { id: 'demolish', phase: 'Build', label: 'Demolish / relocate', fields: ['mode', 'building', 'note'] },
+  { id: 'produce', phase: 'Work', label: 'Produced', fields: ['resource', 'qty', 'note'] },
+  { id: 'convert', phase: 'Work', label: 'Industry made', fields: ['resource', 'qty', 'note'] },
+  { id: 'clear', phase: 'Work', label: 'Cleared Forest', fields: ['qty', 'note'] },
+  { id: 'export', phase: 'Trade', label: 'Declared export', fields: ['resource', 'note'] },
+  { id: 'import', phase: 'Trade', label: 'Declared import', fields: ['resource', 'note'] },
+  { id: 'sellPlayer', phase: 'Trade', label: 'Sold to a player', fields: ['resource', 'qty', 'price', 'partner', 'note'] },
+  { id: 'buySupply', phase: 'Trade', label: 'Bought from NPC supply', fields: ['region', 'resource', 'qty', 'price', 'note'] },
+  { id: 'sellNpc', phase: 'Trade', label: 'Sold to NPC card', fields: ['region', 'resource', 'qty', 'price', 'completed', 'points', 'note'] },
+  { id: 'portTrade', phase: 'Trade', label: 'Port Trade', fields: ['resource', 'qty', 'note'] },
+  { id: 'trust', phase: 'Trade', label: 'Trust gained', fields: ['region', 'amount', 'note'] },
+  { id: 'favour', phase: 'Trade', label: 'Favour token', fields: ['region', 'qty', 'note'] },
+  { id: 'foodShort', phase: 'Upkeep', label: 'Food short', fields: ['qty', 'note'] },
+  { id: 'unpaid', phase: 'Upkeep', label: 'Wages unpaid', fields: ['qty', 'note'] },
+  { id: 'storage', phase: 'Upkeep', label: 'Discarded (storage)', fields: ['resource', 'qty', 'note'] },
+  { id: 'goal', phase: 'Upkeep', label: 'Goal scored', fields: ['goal', 'points', 'note'] },
+  { id: 'points', phase: 'any', label: 'Other points', fields: ['points', 'note'] },
+  { id: 'note', phase: 'any', label: 'Designer note', fields: ['noteKind', 'note'], table: true },
+  { id: 'landDrawn', phase: 'table', label: 'Land tiles drawn', fields: ['tiles', 'note'] },
+  { id: 'freeTile', phase: 'table', label: 'Free tile removed', fields: ['freeTile', 'note'] },
+  { id: 'npcRevealed', phase: 'table', label: 'NPC card revealed', fields: ['card', 'note'] },
+  { id: 'npcCompleted', phase: 'table', label: 'NPC card completed', fields: ['card', 'winner', 'note'] },
+  { id: 'npcStale', phase: 'table', label: 'NPC card discarded (stale)', fields: ['card', 'note'] },
+  { id: 'landmarksRevealed', phase: 'table', label: 'Landmarks revealed', fields: ['landmarks', 'note'] },
+  { id: 'goalsRevealed', phase: 'table', label: 'Goals revealed', fields: ['goals', 'note'] }
+];
+const GROUP_ORDER = ['Land', 'Build', 'Work', 'Trade', 'Upkeep', 'any'];
+const GROUP_NAME = { Land: 'Land', Build: 'Build', Work: 'Work', Trade: 'Trade', Upkeep: 'Upkeep', any: 'Any time', table: 'Table: what comes out' };
+const eraNum = () => (game.round || 1) <= 5 ? 1 : (game.round <= 10 ? 2 : 3);
+const cardById = id => [1, 2, 3].map(e => NPC_CARDS[e]).flat().find(c => c.id === id);
+
+/* ---------- Feedback questions ---------- */
+const LIKERT = [
+  { id: 'fun', q: 'How much did you enjoy the game?', lo: 'Not at all', hi: 'A lot' },
+  { id: 'length', q: 'How did the length feel?', lo: 'Too short', hi: 'Too long' },
+  { id: 'downtime', q: 'How much did you wait between your turns?', lo: 'Hardly at all', hi: 'Far too much' },
+  { id: 'clarity', q: 'How clear were the rules?', lo: 'Very unclear', hi: 'Very clear' },
+  { id: 'choices', q: 'Did your decisions feel meaningful?', lo: 'Not really', hi: 'Very' },
+  { id: 'specialise', q: 'Did you have to choose what your city specialised in (you couldn’t do everything)?', lo: 'Not at all', hi: 'Very much' },
+  { id: 'trade', q: 'Did trading with other players matter to you?', lo: 'Not at all', hi: 'A lot' },
+  { id: 'squeeze', q: 'How tight were workers and Food?', lo: 'Too loose', hi: 'Too tight' },
+  { id: 'site', q: 'How strong did your founding site feel?', lo: 'Weak', hi: 'Strong' },
+  { id: 'again', q: 'Would you play again?', lo: 'No', hi: 'Definitely' }
+];
+const MECHS = [
+  { id: 'm_land', q: 'Buying land and the extra-hex surcharge' },
+  { id: 'm_place', q: 'Placing buildings (terrain, fields, adjacency)' },
+  { id: 'm_work', q: 'Placing workers and producing' },
+  { id: 'm_npc', q: 'NPC city cards (selling and buying)' },
+  { id: 'm_stalls', q: 'Trading with other players (stalls)' },
+  { id: 'm_trust', q: 'Trust tracks and favour' },
+  { id: 'm_upkeep', q: 'Upkeep (Food, wages, building upkeep)' },
+  { id: 'm_energy', q: 'Energy' },
+  { id: 'm_goals', q: 'Era goals' },
+  { id: 'm_landmarks', q: 'Landmarks' },
+  { id: 'm_eras', q: 'Era changes (new buildings and goods)' }
+];
+const OPEN = [
+  { id: 'best', q: 'What was your best moment?' },
+  { id: 'confusing', q: 'Which rule was most confusing?' },
+  { id: 'remove', q: 'What would you remove or simplify?' },
+  { id: 'add', q: 'What would you add or change?' },
+  { id: 'dominant', q: 'Did any strategy or building feel too strong or too weak?' },
+  { id: 'other', q: 'Anything else?' }
+];
+const EXPERIENCE = ['First heavy game', 'Sometimes play heavy games', 'Often play heavy games'];
+
+/* ---------- State ---------- */
+let db = null;
+let gid = null;
+let game = { name: '', round: 0, phase: 0, side: 'A', first: 'Ivory', players: {} };
+let events = [];
+let snaps = {};
+let feedback = {};
+let curPlayer = 'Ivory';
+let fbPlayer = 'Ivory';
+let unsubs = [];
+const $ = id => document.getElementById(id);
+const esc = t => { const d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+const pname = c => (game.players[c] && game.players[c].name) ? `${game.players[c].name} (${c})` : c;
+const pshort = c => (game.players[c] && game.players[c].name) || c;
+const cHex = c => (COLORS.find(x => x.id === c) || { hex: 'transparent' }).hex;
+function setStatus(t, bad) { const s = $('status'); s.textContent = t; s.classList.toggle('bad', !!bad); }
+const newId = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+
+/* Local backup queue for writes that fail (weak signal at the table). */
+const QKEY = 'ptlog-queue';
+function loadQ() { try { return JSON.parse(localStorage.getItem(QKEY) || '[]'); } catch (_) { return []; } }
+function saveQ(q) { try { localStorage.setItem(QKEY, JSON.stringify(q)); } catch (_) {} }
+async function write(path, data) {
+  try { await db.doc(path).set(data); return true; }
+  catch (e) {
+    if (e && e.code === 'invalid_argument') { setStatus('You can view this log but not change it.', true); return false; }
+    setStatus('Couldn’t save that entry: this phone’s storage is full. Export and delete old games in Setup.', true);
+    return false;
+  }
+}
+async function flushQ() {
+  if (!db) return;
+  const q = loadQ(); if (!q.length) return;
+  const left = [];
+  for (const w of q) { try { await db.doc(w.path).set(w.data); } catch (_) { left.push(w); } }
+  saveQ(left);
+  setStatus(left.length ? `${left.length} entries still waiting to upload.` : 'All entries uploaded.', !!left.length);
+}
+
+
+/* ---------- Phase bar ---------- */
+function phaseText() {
+  if (!game.round) return { r: 'Not started', p: 'Setup' };
+  if (game.round > ROUNDS) return { r: 'Game over', p: 'Final scoring' };
+  return { r: `Round ${game.round} of ${ROUNDS} · ${eraOf(game.round)}`, p: PHASES[game.phase] };
+}
+function renderPhase() {
+  const t = phaseText();
+  $('roundLbl').textContent = t.r; $('phaseLbl').textContent = t.p;
+  $('nextPhase').textContent = !game.round ? 'Start round 1 ▶' : game.round > ROUNDS ? 'Finished' : 'Next phase ▶';
+  $('nextPhase').disabled = !db || game.round > ROUNDS;
+  $('prevPhase').disabled = !db || !game.round;
+}
+async function stepPhase(dir) {
+  let { round, phase } = game;
+  if (dir > 0) {
+    if (!round) { round = 1; phase = 0; }
+    else if (phase < PHASES.length - 1) phase++;
+    else { round++; phase = 0; }
+  } else {
+    if (round > ROUNDS) { round = ROUNDS; phase = PHASES.length - 1; }
+    else if (phase > 0) phase--;
+    else if (round > 1) { round--; phase = PHASES.length - 1; }
+    else { round = 0; phase = 0; }
+  }
+  game.round = round; game.phase = phase;
+  renderPhase(); renderTypes();
+  await write(`games/${gid}`, Object.assign({}, game));
+  if (dir > 0) {
+    const ev = { t: new Date().toISOString(), round, phase: round > ROUNDS ? 'Final scoring' : PHASES[phase], type: 'phase', player: '', data: {} };
+    await write(`games/${gid}/events/${newId()}`, ev);
+    if (round > 1 && phase === 0 && round <= ROUNDS + 1) setStatus(`Round ${round - 1} done. Fill in its snapshot on the Scores tab.`);
+  }
+}
+
+/* ---------- Log tab ---------- */
+function renderPlayerPicker(el, cur, withTable, onPick) {
+  const list = COLORS.map(c => c.id).concat(withTable ? ['Table'] : []);
+  el.innerHTML = list.map(c => `<button class="pchip" data-p="${c}" aria-pressed="${c === cur}">
+      <span class="dot" style="background:${c === 'Table' ? 'transparent' : cHex(c)}"></span><span>${esc(c === 'Table' ? 'Table' : pshort(c))}</span></button>`).join('');
+  el.onclick = e => { const b = e.target.closest('[data-p]'); if (b) onPick(b.dataset.p); };
+}
+function renderTypes() {
+  const nowPhase = game.round && game.round <= ROUNDS ? PHASES[game.phase] : null;
+  // Table entries (what comes out of the bag and decks) show when Table is picked; player actions otherwise.
+  const order = curPlayer === 'Table' ? ['table', 'any']
+    : GROUP_ORDER.slice().sort((a, b) => (b === nowPhase) - (a === nowPhase));
+  $('typeGroups').innerHTML = order.map(g => {
+    const ts = TYPES.filter(t => t.phase === g);
+    return `<h3>${GROUP_NAME[g]}${g === nowPhase ? ' · now' : ''}</h3><div class="types" style="margin:6px 0 10px">${ts.map(t =>
+      `<button class="tbtn ${g === nowPhase ? 'now' : ''}" data-type="${t.id}">${esc(t.label)}</button>`).join('')}</div>`;
+  }).join('');
+}
+$('typeGroups').addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (b) openSheet(b.dataset.type); });
+
+function describe(ev) {
+  const d = ev.data || {};
+  const q = d.qty != null ? d.qty + ' × ' : '';
+  const each = d.price ? ` at ${d.price} each` : '';
+  switch (ev.type) {
+    case 'phase': return `<span class="phase-ev">— ${esc(ev.phase)}${ev.round && ev.round <= ROUNDS ? ' · round ' + ev.round : ''} —</span>`;
+    case 'land': return `bought ${q}${esc(d.terrain)}${d.paid ? ` for ${d.paid} Wealth` : ''}`;
+    case 'build': return `built ${esc(d.building)}${d.on ? ' on ' + esc(d.on) : ''}`;
+    case 'upgrade': return `upgrade: ${esc(d.upgrade)}`;
+    case 'demolish': return `${esc((d.mode || '').toLowerCase())} ${esc(d.building)}`;
+    case 'produce': return `produced ${q}${esc(d.resource)}`;
+    case 'convert': return `industry made ${q}${esc(d.resource)}`;
+    case 'clear': return `cleared ${d.qty || 1} Forest`;
+    case 'export': return `declared export: ${esc(d.resource)}`;
+    case 'import': return `declared import: ${esc(d.resource)}`;
+    case 'sellPlayer': return `sold ${q}${esc(d.resource)}${each} to ${esc(pshort(d.partner))}`;
+    case 'buySupply': return `bought ${q}${esc(d.resource)}${each} from ${esc(d.region)} supply`;
+    case 'sellNpc': return `sold ${q}${esc(d.resource)}${each} to a ${esc(d.region)} card${d.completed ? ` · completed${d.points ? ', ' + d.points + ' pts' : ''}` : ' · not completed'}`;
+    case 'portTrade': return `Port Trade: ${q}${esc(d.resource)}`;
+    case 'trust': return `trust ${d.amount >= 0 ? '+' : ''}${d.amount} in ${esc(d.region)}`;
+    case 'favour': return `${d.qty || 1} favour in ${esc(d.region)}`;
+    case 'foodShort': return `${d.qty} Food short`;
+    case 'unpaid': return `${d.qty} wages unpaid`;
+    case 'storage': return `discarded ${q}${esc(d.resource)} (storage)`;
+    case 'goal': return `goal${d.goal ? ' “' + esc(d.goal) + '”' : ''}: ${d.points} pts`;
+    case 'points': return `${d.points >= 0 ? '+' : ''}${d.points} points`;
+    case 'note': return `<b>${esc(d.noteKind)}</b>`;
+    case 'landDrawn': return 'land tiles drawn: ' + Object.entries(d.tiles || {}).map(([k, n]) => n + ' ' + esc(k)).join(', ');
+    case 'freeTile': return `free ${esc(d.freeTile)} tile removed from the row`;
+    case 'npcRevealed': case 'npcCompleted': case 'npcStale': {
+      const c = cardById(d.card) || { city: d.card, r: '', want: '' };
+      const verb = { npcRevealed: 'NPC card revealed', npcCompleted: 'NPC card completed', npcStale: 'NPC card discarded (stale)' }[ev.type];
+      return `${verb}: <b>${esc(c.city)}</b> (${esc(c.r)}, wants ${esc(c.want)})${d.winner ? ' by ' + esc(pshort(d.winner)) : ''}`;
+    }
+    case 'landmarksRevealed': return 'Landmarks revealed: ' + (d.landmarks || []).map(esc).join(', ');
+    case 'goalsRevealed': return 'goals revealed: ' + (d.goals || []).map(esc).join(', ');
+    default: return esc(ev.type);
+  }
+}
+function evLine(ev, withDelete) {
+  const who = ev.type === 'phase' ? '' : ev.player === 'Table' || !ev.player ? 'Table: ' : esc(pshort(ev.player)) + ' ';
+  const note = ev.data && ev.data.note ? ` — ${esc(ev.data.note)}` : '';
+  const time = new Date(ev.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const bar = ev.player && ev.player !== 'Table' ? cHex(ev.player) : 'transparent';
+  return `<li><span class="bar" style="background:${bar}"></span>
+    <span class="what">${ev.type === 'phase' ? '' : `<b>${who}</b>`}${describe(ev)}${note}<br><span class="meta">${time} · R${ev.round || 0} ${esc(ev.phase || '')}</span></span>
+    ${withDelete ? `<button class="x" data-del="${ev.id}">Remove</button>` : '<span></span>'}</li>`;
+}
+function renderRecent() {
+  const list = events.slice(-6).reverse();
+  $('recent').innerHTML = list.length ? list.map(e => evLine(e, true)).join('') : '<li><span></span><span class="hint">Nothing logged yet. Pick a player, then what happened.</span><span></span></li>';
+}
+function renderTimeline() {
+  if (!events.length) { $('timeline').innerHTML = '<p class="hint">Nothing logged yet.</p>'; return; }
+  const byRound = {};
+  events.forEach(e => { (byRound[e.round || 0] = byRound[e.round || 0] || []).push(e); });
+  $('timeline').innerHTML = Object.keys(byRound).map(Number).sort((a, b) => b - a).map(r =>
+    `<div class="rhead">${r === 0 ? 'Setup' : r > ROUNDS ? 'Final scoring' : 'Round ' + r + ' · ' + eraOf(r)}</div>
+     <ul class="log">${byRound[r].slice().reverse().map(e => evLine(e, true)).join('')}</ul>`).join('');
+}
+document.addEventListener('click', async e => {
+  const d = e.target.closest('[data-del]');
+  if (d && db) {
+    if (d.dataset.confirm !== '1') { d.dataset.confirm = '1'; d.textContent = 'Tap to confirm'; setTimeout(() => { d.dataset.confirm = ''; d.textContent = 'Remove'; }, 3000); return; }
+    try { await db.doc(`games/${gid}/events/${d.dataset.del}`).delete(); setStatus('Entry removed'); } catch (_) { setStatus('Couldn’t remove that entry. Try again.', true); }
+  }
+  const g = e.target.closest('[data-goto]'); if (g) showTab(g.dataset.goto);
+});
+
+/* ---------- Entry sheet ---------- */
+let sheet = null;
+function openSheet(typeId) {
+  const t = TYPES.find(x => x.id === typeId);
+  const who = curPlayer;
+  sheet = { t, vals: {} };
+  t.fields.forEach(f => { const def = F[f]; if (def.kind === 'num') sheet.vals[f] = def.def; if (def.kind === 'bool') sheet.vals[f] = true;
+    if (def.kind === 'counts') sheet.vals[f] = {}; if (def.kind === 'multi') sheet.vals[f] = []; });
+  $('sheetTitle').textContent = t.label;
+  $('sheetWho').textContent = who === 'Table' ? 'Table' : pname(who);
+  $('sheetBody').innerHTML = t.fields.map(f => fieldHtml(f)).join('');
+  $('sheetBg').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet() { $('sheetBg').hidden = true; sheet = null; document.body.style.overflow = ''; }
+function fieldHtml(f) {
+  const d = F[f], v = sheet.vals[f];
+  const chips = opts => `<div class="chips" data-f="${f}">${opts.map(o => `<button class="chip" data-v="${esc(o)}" aria-pressed="${v === o}">${esc(o)}</button>`).join('')}</div>`;
+  if (d.kind === 'enum') return `<div class="field"><span class="flabel">${d.label}</span>${chips(d.options)}</div>`;
+  if (d.kind === 'groups') return `<div class="field"><span class="flabel">${d.label}</span>${Object.keys(d.groups).map(g => `<h3>${esc(g)}</h3>${chips(d.groups[g])}`).join('')}</div>`;
+  if (d.kind === 'partner') return `<div class="field"><span class="flabel">${d.label}</span>${chips(COLORS.map(c => c.id).filter(c => c !== curPlayer))}</div>`;
+  if (d.kind === 'bool') return `<div class="field"><span class="flabel">${d.label}</span><div class="chips" data-f="${f}" data-bool="1"><button class="chip" data-v="yes" aria-pressed="${v === true}">Yes</button><button class="chip" data-v="no" aria-pressed="${v === false}">No</button></div></div>`;
+  if (d.kind === 'num') return `<div class="field"><label for="n-${f}">${d.label}</label><div class="stepper"><button type="button" data-step="${f}" data-d="-1" aria-label="Less">−</button><input id="n-${f}" inputmode="numeric" data-num="${f}" value="${v}"><button type="button" data-step="${f}" data-d="1" aria-label="More">+</button></div></div>`;
+  if (d.kind === 'counts') return `<div class="field"><span class="flabel">${d.label}</span><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">${d.options.map(o =>
+    `<div class="stepper" style="justify-content:space-between;border:1px solid var(--line);border-radius:6px;padding:4px 6px"><span style="font-size:14px;font-weight:600;min-width:0">${esc(o)}</span><span class="stepper"><button type="button" data-cstep="${f}" data-o="${esc(o)}" data-d="-1" aria-label="One fewer ${esc(o)}">−</button><b data-cval="${esc(o)}" style="font-family:var(--mono);min-width:18px;text-align:center">0</b><button type="button" data-cstep="${f}" data-o="${esc(o)}" data-d="1" aria-label="One more ${esc(o)}">+</button></span></div>`).join('')}</div></div>`;
+  if (d.kind === 'multi') {
+    const opts = d.optionsFn ? d.optionsFn() : d.options;
+    return `<div class="field"><span class="flabel">${d.label}</span><div class="chips" data-f="${f}" data-multi="1">${opts.map(o => `<button class="chip" data-v="${esc(o)}" aria-pressed="false">${esc(o)}</button>`).join('')}</div></div>`;
+  }
+  if (d.kind === 'card') {
+    const era = eraNum();
+    return `<div class="field"><span class="flabel">${d.label} · Era ${['I', 'II', 'III'][era - 1]} deck</span>${['Heartland', 'Frontier', 'Overseas'].map(r =>
+      `<h3>${r}</h3><div class="chips" data-f="${f}">${NPC_CARDS[era].filter(c => c.r === r).map(c =>
+        `<button class="chip" data-v="${c.id}" aria-pressed="false" style="text-align:left">${esc(c.city)} <span style="opacity:.7">· ${esc(c.want)}${c.sp ? ' · ' + ({ charter: '★ Charter', rail: 'rail freight', container: 'container freight' })[c.sp] : ''}</span></button>`).join('')}</div>`).join('')}</div>`;
+  }
+  if (d.kind === 'text') return `<div class="field"><label for="t-${f}">${d.label}</label><textarea id="t-${f}" data-text="${f}" placeholder="Type or use voice typing"></textarea></div>`;
+  return '';
+}
+$('sheetBody').addEventListener('click', e => {
+  const cs = e.target.closest('[data-cstep]');
+  if (cs) {
+    const f = cs.dataset.cstep, o = cs.dataset.o, m = sheet.vals[f];
+    m[o] = Math.max(0, (m[o] || 0) + parseInt(cs.dataset.d, 10));
+    if (!m[o]) delete m[o];
+    cs.parentElement.querySelector('[data-cval]').textContent = m[o] || 0;
+    return;
+  }
+  const c = e.target.closest('.chip');
+  if (c && c.parentElement.dataset.multi) {
+    const f = c.parentElement.dataset.f, arr = sheet.vals[f], i = arr.indexOf(c.dataset.v);
+    if (i >= 0) arr.splice(i, 1); else arr.push(c.dataset.v);
+    c.setAttribute('aria-pressed', String(i < 0));
+    return;
+  }
+  if (c) {
+    const box = c.parentElement, f = box.dataset.f;
+    const val = box.dataset.bool ? c.dataset.v === 'yes' : c.dataset.v;
+    sheet.vals[f] = sheet.vals[f] === val && !box.dataset.bool ? undefined : val;
+    document.querySelectorAll(`#sheetBody .chips[data-f="${f}"] .chip`).forEach(x => x.setAttribute('aria-pressed', 'false'));
+    if (sheet.vals[f] !== undefined) c.setAttribute('aria-pressed', 'true');
+    return;
+  }
+  const s = e.target.closest('[data-step]');
+  if (s) {
+    const f = s.dataset.step, d = F[f];
+    const n = Math.max(d.min ?? 0, (parseInt(sheet.vals[f], 10) || 0) + parseInt(s.dataset.d, 10));
+    sheet.vals[f] = n; $('n-' + f).value = n;
+  }
+});
+$('sheetBody').addEventListener('input', e => {
+  const n = e.target.dataset.num, t = e.target.dataset.text;
+  if (n) sheet.vals[n] = parseInt(e.target.value, 10) || 0;
+  if (t) sheet.vals[t] = e.target.value.trim();
+});
+$('sheetCancel').onclick = closeSheet;
+$('sheetBg').addEventListener('click', e => { if (e.target === $('sheetBg')) closeSheet(); });
+$('sheetSave').onclick = async () => {
+  const t = sheet.t;
+  const empty = v => v === undefined || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && v !== null && !Array.isArray(v) && !Object.keys(v).length);
+  const missing = t.fields.filter(f => F[f].req && empty(sheet.vals[f]));
+  if (missing.length) { setStatus('Pick ' + missing.map(f => F[f].label.toLowerCase()).join(' and ') + ' first.', true); return; }
+  const data = {};
+  t.fields.forEach(f => { if (!empty(sheet.vals[f])) data[f] = sheet.vals[f]; });
+  const ev = { t: new Date().toISOString(), round: game.round, phase: game.round > ROUNDS ? 'Final scoring' : game.round ? PHASES[game.phase] : 'Setup', type: t.id, player: curPlayer, data };
+  closeSheet();
+  if (await write(`games/${gid}/events/${newId()}`, ev)) setStatus('Saved: ' + t.label);
+};
+
+/* ---------- Scores tab ---------- */
+/* Points by source (RULEBOOK §13). `neg`: entered as points lost. `final`: shown only for the end-of-game scoring.
+   `deferred`: logged in the round it was built, but only goes on the score track at game end. */
+const SOURCES = [
+  { id: 'npc', label: 'NPC cards completed', group: 'Trade' },
+  { id: 'partner', label: 'Partner bonus', group: 'Trade' },
+  { id: 'worldbank', label: 'World Bank investing', group: 'Trade' },
+  { id: 'trust', label: 'Trust tracks (all 3 regions)', group: 'Trade', final: true },
+  { id: 'race', label: 'Race goals', group: 'Goals' },
+  { id: 'eraend', label: 'Era-end goals', group: 'Goals' },
+  { id: 'civic', label: 'Shrines and City Halls (era end)', group: 'City' },
+  { id: 'buildings', label: 'Building points built this round (scored at game end)', group: 'City', deferred: true },
+  { id: 'landmarks', label: 'Landmarks built this round (printed + extra, scored at game end)', group: 'City', deferred: true },
+  { id: 'energy', label: 'Spare Energy (max 5)', group: 'City', final: true },
+  { id: 'other', label: 'Other points', group: 'Other' },
+  { id: 'food', label: 'Food penalty (points lost)', group: 'Penalties', neg: true },
+  { id: 'wages', label: 'Unpaid wages (points lost)', group: 'Penalties', neg: true }
+];
+/* #182: starting points by seat, first player 10, then clockwise 11, 12, 13. */
+const seatOf = c => { const p = game.players[c] || {}; if (p.seat) return +p.seat; const i = COLORS.findIndex(x => x.id === c), f = COLORS.findIndex(x => x.id === game.first); return ((i - f + 4) % 4) + 1; };
+const startPts = c => 9 + seatOf(c);
+let snapDraft = {}, snapKey = '', snapWho = 'Ivory';
+const num = v => (v === '' || v == null || isNaN(+v)) ? 0 : +v;
+const roundSum = (p, withDeferred = true) => SOURCES.reduce((t, src) => t + ((src.deferred && !withDeferred) ? 0 : (src.neg ? -1 : 1) * num(p && p.pts && p.pts[src.id])), 0);
+const deferredSum = p => roundSum(p, true) - roundSum(p, false);
+const sortedSnapKeys = () => Object.keys(snaps).sort((a, b) => (a === 'rfinal' ? 99 : +a.slice(1)) - (b === 'rfinal' ? 99 : +b.slice(1)));
+function renderSnapRoundSel() {
+  const sel = $('snapRound'), keep = sel.value;
+  sel.innerHTML = Array.from({ length: ROUNDS }, (_, i) => `<option value="${i + 1}">Round ${i + 1}</option>`).join('') + '<option value="final">Final</option>';
+  const auto = game.round > ROUNDS ? 'final' : String(Math.max(1, game.phase === PHASES.length - 1 ? game.round : game.round - 1));
+  sel.value = keep || auto;
+}
+function loadSnapDraft() {
+  snapKey = 'r' + $('snapRound').value;
+  snapDraft = JSON.parse(JSON.stringify(snaps[snapKey] || {}));
+  COLORS.forEach(c => { snapDraft[c.id] = snapDraft[c.id] || {}; snapDraft[c.id].pts = snapDraft[c.id].pts || {}; });
+}
+function renderSnapTable() {
+  if ('r' + $('snapRound').value !== snapKey) loadSnapDraft();
+  renderPlayerPicker($('snapPlayer'), snapWho, false, p => { snapWho = p; renderSnapTable(); });
+  const isFinal = snapKey === 'rfinal';
+  const p = snapDraft[snapWho];
+  let lastGroup = '';
+  const rows = SOURCES.filter(src => isFinal || !src.final).map(src => {
+    const head = src.group !== lastGroup ? `<h3>${src.group}</h3>` : '';
+    lastGroup = src.group;
+    return `${head}<div class="row" style="flex-wrap:nowrap;justify-content:space-between"><label for="sp-${src.id}" style="flex:1;min-width:0">${src.label}</label>
+      <input id="sp-${src.id}" inputmode="numeric" data-sp="${src.id}" value="${p.pts[src.id] ?? ''}" placeholder="0" style="width:76px;height:40px;text-align:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--mono)"></div>`;
+  }).join('');
+  const prior = cumulativeBefore(snapKey, snapWho);
+  const expected = startPts(snapWho) + prior + roundSum(p, isFinal);
+  $('snapForm').innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">${rows}
+    <h3>Totals</h3>
+    ${[['score', 'Score on the track'], ['wealth', 'Wealth'], ['workers', 'Workers']].map(([k, l]) => `<div class="row" style="flex-wrap:nowrap;justify-content:space-between"><label for="sv-${k}" style="flex:1">${l}</label>
+      <input id="sv-${k}" inputmode="numeric" data-sv="${k}" value="${p[k] ?? ''}" style="width:76px;height:40px;text-align:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-family:var(--mono)"></div>`).join('')}
+    <p class="hint" id="snapCheck">On the track this round: ${roundSum(p, isFinal) >= 0 ? '+' : ''}${roundSum(p, isFinal)}${!isFinal && deferredSum(p) ? ` (+${deferredSum(p)} building points held for game end)` : ''} · expected track total ${expected}${p.score !== '' && p.score != null && num(p.score) !== expected ? ` · <b style="color:var(--warn)">⚠ track shows ${p.score}</b>` : ''}</p></div>`;
+}
+function cumulativeBefore(key, who) {
+  const n = k => k === 'rfinal' ? 99 : +k.slice(1);
+  return sortedSnapKeys().filter(k => n(k) < n(key)).reduce((x, k) => x + roundSum(snaps[k][who], key === 'rfinal'), 0);
+}
+$('snapForm').addEventListener('input', e => {
+  const p = snapDraft[snapWho];
+  if (e.target.dataset.sp) p.pts[e.target.dataset.sp] = e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0);
+  if (e.target.dataset.sv) p[e.target.dataset.sv] = e.target.value === '' ? '' : (parseInt(e.target.value, 10) || 0);
+  const expected = startPts(snapWho) + cumulativeBefore(snapKey, snapWho) + roundSum(p, snapKey === 'rfinal');
+  const isFinal = snapKey === 'rfinal';
+  $('snapCheck').innerHTML = `On the track this round: ${roundSum(p, isFinal) >= 0 ? '+' : ''}${roundSum(p, isFinal)}${!isFinal && deferredSum(p) ? ` (+${deferredSum(p)} building points held for game end)` : ''} · expected track total ${expected}${p.score !== '' && p.score != null && num(p.score) !== expected ? ` · <b style="color:var(--warn)">⚠ track shows ${p.score}</b>` : ''}`;
+});
+function renderScoreHistory() {
+  const keys = sortedSnapKeys();
+  if (!keys.length) { $('scoreHistory').innerHTML = '<tr><td class="hint">No snapshots yet.</td></tr>'; $('sourceTotals').innerHTML = ''; return; }
+  const run = {}, held = {}; COLORS.forEach(c => { run[c.id] = startPts(c.id); held[c.id] = 0; });
+  $('scoreHistory').innerHTML = `<tr><th>Round</th>${COLORS.map(c => `<th>${esc(pshort(c.id))}</th>`).join('')}</tr>` + keys.map(k =>
+    `<tr><td>${k === 'rfinal' ? 'Final' : k.slice(1)}</td>${COLORS.map(c => {
+      const p = snaps[k][c.id] || {};
+      run[c.id] += roundSum(p, false); held[c.id] += deferredSum(p);
+      if (k === 'rfinal') { run[c.id] += held[c.id]; held[c.id] = 0; }
+      const has = p.score !== '' && p.score != null;
+      const shown = has ? p.score : run[c.id];
+      const warn = has && num(p.score) !== run[c.id] ? ` <span title="Sources add up to ${run[c.id]}" style="color:var(--warn)">⚠</span>` : '';
+      return `<td>${shown}${warn}</td>`;
+    }).join('')}</tr>`).join('');
+  const tot = {}; COLORS.forEach(c => { tot[c.id] = {}; });
+  keys.forEach(k => COLORS.forEach(c => { const p = snaps[k][c.id]; SOURCES.forEach(src => { tot[c.id][src.id] = (tot[c.id][src.id] || 0) + (src.neg ? -1 : 1) * num(p && p.pts && p.pts[src.id]); }); }));
+  $('sourceTotals').innerHTML = `<tr><th>Source</th>${COLORS.map(c => `<th>${esc(pshort(c.id))}</th>`).join('')}</tr>
+    <tr><td>Starting points (by seat)</td>${COLORS.map(c => `<td>${startPts(c.id)}</td>`).join('')}</tr>` +
+    SOURCES.map(src => `<tr><td>${src.label.replace(' (points lost)', '')}</td>${COLORS.map(c => `<td>${tot[c.id][src.id] || 0}</td>`).join('')}</tr>`).join('') +
+    `<tr><th>Total</th>${COLORS.map(c => `<th>${startPts(c.id) + SOURCES.reduce((t, src) => t + (tot[c.id][src.id] || 0), 0)}</th>`).join('')}</tr>`;
+}
+$('snapRound').onchange = () => { loadSnapDraft(); renderSnapTable(); };
+$('saveSnap').onclick = async () => {
+  const out = Object.assign({}, snapDraft, { t: new Date().toISOString() });
+  if (await write(`games/${gid}/snapshots/${snapKey}`, out)) setStatus('Snapshot saved for ' + (snapKey === 'rfinal' ? 'final scoring' : 'round ' + snapKey.slice(1)));
+};
+
+/* ---------- Feedback tab ---------- */
+function renderFeedback() {
+  renderPlayerPicker($('fbPlayer'), fbPlayer, false, p => { fbPlayer = p; renderFeedback(); });
+  const f = feedback[fbPlayer] || {};
+  const lik = (q, v, lo, hi, na) => `<div class="q"><span class="flabel">${esc(q.q)}</span>
+    <div class="likert" data-lk="${q.id}">${[1, 2, 3, 4, 5].map(n => `<button aria-pressed="${v === n}" data-n="${n}">${n}</button>`).join('')}</div>
+    <div class="ends"><span>${esc(lo)}</span>${na ? `<button class="x na" data-lk-na="${q.id}">${v === 0 ? '✓ ' : ''}Didn’t use it</button>` : ''}<span>${esc(hi)}</span></div></div>`;
+  $('fbForm').innerHTML = `
+    <div class="card">
+      <h2>About you</h2>
+      <div class="field"><label for="fb-name">Name</label><input type="text" id="fb-name" value="${esc(f.name || (game.players[fbPlayer] && game.players[fbPlayer].name) || '')}"></div>
+      <div class="field"><span class="flabel">How often do you play heavy strategy games?</span>
+        <div class="chips" data-fbchip="experience">${EXPERIENCE.map(x => `<button class="chip" data-v="${esc(x)}" aria-pressed="${f.experience === x}">${esc(x)}</button>`).join('')}</div></div>
+    </div>
+    <div class="card"><h2>The game overall</h2><p class="hint">1 to 5. Tap again to change.</p>
+      ${LIKERT.map(q => lik(q, f[q.id], q.lo, q.hi, false)).join('')}</div>
+    <div class="card"><h2>Each part of the game</h2><p class="hint">1 = disliked it, 5 = loved it.</p>
+      ${MECHS.map(q => lik(q, f[q.id], 'Disliked', 'Loved', true)).join('')}</div>
+    <div class="card"><h2>In your own words</h2>
+      ${OPEN.map(q => `<div class="field"><label for="fb-${q.id}">${esc(q.q)}</label><textarea id="fb-${q.id}" data-fbtext="${q.id}" placeholder="Type or use voice typing">${esc(f[q.id] || '')}</textarea></div>`).join('')}
+      <button class="btn primary" id="fbSave">Save ${esc(fbPlayer)}’s answers</button>
+      ${f.savedAt ? `<span class="done-pill">Saved ${new Date(f.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>` : ''}
+    </div>`;
+  fbDraft = JSON.parse(JSON.stringify(f));
+}
+let fbDraft = {};
+$('fbForm').addEventListener('click', async e => {
+  const lb = e.target.closest('.likert button');
+  if (lb) { const id = lb.parentElement.dataset.lk; fbDraft[id] = +lb.dataset.n; lb.parentElement.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b === lb))); return; }
+  const na = e.target.closest('[data-lk-na]');
+  if (na) { const id = na.dataset.lkNa; fbDraft[id] = 0; document.querySelectorAll(`[data-lk="${id}"] button`).forEach(b => b.setAttribute('aria-pressed', 'false')); na.textContent = '✓ Didn’t use it'; return; }
+  const ch = e.target.closest('[data-fbchip] .chip');
+  if (ch) { const k = ch.parentElement.dataset.fbchip; fbDraft[k] = ch.dataset.v; ch.parentElement.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b === ch))); return; }
+  if (e.target.id === 'fbSave') {
+    fbDraft.name = $('fb-name').value.trim();
+    document.querySelectorAll('[data-fbtext]').forEach(t => { fbDraft[t.dataset.fbtext] = t.value.trim(); });
+    fbDraft.colour = fbPlayer; fbDraft.site = (game.players[fbPlayer] && game.players[fbPlayer].site) || '';
+    fbDraft.savedAt = new Date().toISOString();
+    if (await write(`games/${gid}/feedback/${fbPlayer}`, fbDraft)) setStatus(`${fbPlayer}’s answers saved. Thank you!`);
+    window.scrollTo({ top: 0 });
+  }
+});
+
+/* ---------- Setup tab ---------- */
+function renderSetup() {
+  $('gameName').value = game.name || '';
+  $('sideChips').innerHTML = ['A', 'B'].map(s => `<button class="chip" data-side="${s}" aria-pressed="${game.side === s}">Side ${s}${s === 'B' ? ' (standard)' : ''}</button>`).join('');
+  $('firstPlayer').innerHTML = COLORS.map(c => `<option value="${c.id}" ${game.first === c.id ? 'selected' : ''}>${esc(pname(c.id))}</option>`).join('');
+  $('playerSetup').innerHTML = COLORS.map(c => {
+    const p = game.players[c.id] || {};
+    return `<div class="field"><span class="flabel"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid var(--ink);background:${c.hex};vertical-align:-2px"></span> ${c.id}</span>
+      <div class="row"><input type="text" class="grow" style="flex:1 1 140px" id="pn-${c.id}" placeholder="Player name" value="${esc(p.name || '')}" aria-label="${c.id} player name">
+      <select id="pseat-${c.id}" style="flex:0 1 120px" aria-label="${c.id} seat"><option value="">Seat…</option>${[1, 2, 3, 4].map(n => `<option value="${n}" ${+p.seat === n ? 'selected' : ''}>Seat ${n} · ${9 + n} pts</option>`).join('')}</select>
+      <select id="ps-${c.id}" style="flex:1 1 140px" aria-label="${c.id} founding site"><option value="">Founding site…</option>${SITES.map(s => `<option ${p.site === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div></div>`;
+  }).join('');
+}
+$('sideChips').addEventListener('click', e => { const b = e.target.closest('[data-side]'); if (!b) return; game.side = b.dataset.side; renderSetup(); });
+$('saveSetup').onclick = async () => {
+  game.name = $('gameName').value.trim();
+  game.first = $('firstPlayer').value;
+  COLORS.forEach(c => { game.players[c.id] = { name: $('pn-' + c.id).value.trim(), site: $('ps-' + c.id).value, seat: $('pseat-' + c.id).value ? +$('pseat-' + c.id).value : '' }; });
+  if (await write(`games/${gid}`, Object.assign({}, game))) setStatus('Setup saved');
+  renderAll();
+};
+$('newGame').onclick = async () => {
+  const name = $('newGameName').value.trim() || 'Playtest';
+  const id = 'pt-' + new Date().toISOString().slice(0, 10) + '-' + Math.random().toString(36).slice(2, 6);
+  const fresh = { name, round: 0, phase: 0, side: 'A', first: 'Ivory', players: {}, createdAt: new Date().toISOString() };
+  await write(`games/${id}`, fresh);
+  await write('meta/current', { gid: id });
+  $('newGameName').value = '';
+  setStatus('New game started: ' + name);
+  showTab('setup');
+};
+
+/* ---------- Tabs ---------- */
+function showTab(name) {
+  document.querySelectorAll('[role=tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  ['log', 'timeline', 'scores', 'feedback', 'setup'].forEach(t => { $('tab-' + t).hidden = t !== name; });
+  if (name === 'scores') { renderSnapRoundSel(); loadSnapDraft(); renderSnapTable(); renderScoreHistory(); }
+  if (name === 'feedback') renderFeedback();
+  if (name === 'setup') { renderSetup(); renderGames(); }
+  window.scrollTo({ top: 0 });
+}
+document.querySelector('.tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) showTab(b.dataset.tab); });
+$('nextPhase').onclick = () => stepPhase(1);
+$('prevPhase').onclick = () => stepPhase(-1);
+
+function renderAll() {
+  renderPhase();
+  pick(curPlayer);
+  renderTypes(); renderRecent();
+  if (!$('tab-timeline').hidden) renderTimeline();
+  if (!$('tab-scores').hidden) renderScoreHistory();
+}
+function pick(p) { curPlayer = p; renderPlayerPicker($('pickPlayer'), curPlayer, true, pick); renderTypes(); }
+
+
+/* ---------- Local storage database (this phone only) ----------
+   Documents live under slash paths (games/<id>, games/<id>/events/<id>, ...), saved as one JSON object in
+   localStorage. The API mirrors the few calls the app makes: doc().set/get/delete/onSnapshot, collection().onSnapshot. */
+const STORE_KEY = 'ctta-logbook-v1';
+function makeLocalDb() {
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (_) { store = {}; }
+  const listeners = [];
+  const parent = p => p.split('/').slice(0, -1).join('/');
+  const snapDoc = p => ({ id: p.split('/').pop(), exists: p in store, data: () => store[p] === undefined ? undefined : JSON.parse(JSON.stringify(store[p])) });
+  const snapCol = p => { const docs = Object.keys(store).filter(k => parent(k) === p).map(snapDoc); return { docs, size: docs.length, empty: !docs.length }; };
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); return true; }
+    catch (e) { setStatus('This phone’s storage is full. Export and delete old games in Setup.', true); return false; }
+  }
+  function notify(p) {
+    setTimeout(() => listeners.forEach(l => {
+      if (l.kind === 'doc' && l.path === p) l.fn(snapDoc(p));
+      if (l.kind === 'col' && l.path === parent(p)) l.fn(snapCol(l.path));
+    }), 0);
+  }
+  function listen(kind, path, fn) {
+    const l = { kind, path, fn };
+    listeners.push(l);
+    setTimeout(() => fn(kind === 'doc' ? snapDoc(path) : snapCol(path)), 0);
+    return () => { const i = listeners.indexOf(l); if (i >= 0) listeners.splice(i, 1); };
+  }
+  return {
+    doc: path => ({
+      async set(d) { store[path] = JSON.parse(JSON.stringify(d)); if (!persist()) throw { code: 'quota' }; notify(path); },
+      async get() { return snapDoc(path); },
+      async delete() { delete store[path]; persist(); notify(path); },
+      onSnapshot: (fn) => listen('doc', path, fn)
+    }),
+    collection: path => ({ onSnapshot: (fn) => listen('col', path, fn) }),
+    keys: () => Object.keys(store),
+    raw: p => store[p],
+    removePrefix(prefix) { Object.keys(store).forEach(k => { if (k === prefix || k.startsWith(prefix + '/')) delete store[k]; }); persist(); }
+  };
+}
+
+/* ---------- Games list, export and import ---------- */
+const plain = html => { const d = document.createElement('div'); d.innerHTML = html; return d.textContent.replace(/\s+/g, ' ').trim(); };
+const slug = t => (t || 'playtest').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'playtest';
+const csvCell = v => { const t = v === undefined || v === null ? '' : String(v); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+const toCsv = rows => rows.map(r => r.map(csvCell).join(',')).join('\n') + '\n';
+function gameIds() { return db.keys().filter(k => /^games\/[^/]+$/.test(k)).map(k => k.split('/')[1]); }
+function gameBundle(id) {
+  const pre = 'games/' + id + '/';
+  const pick = sub => { const o = {}; db.keys().filter(k => k.startsWith(pre + sub + '/')).forEach(k => { o[k.slice((pre + sub + '/').length)] = db.raw(k); }); return o; };
+  const evs = pick('events');
+  return {
+    app: 'CTTA playtest logbook', format: 1, exportedAt: new Date().toISOString(), gameId: id,
+    game: db.raw('games/' + id),
+    events: Object.entries(evs).map(([eid, e]) => Object.assign({ id: eid }, e)).sort((a, b) => a.t < b.t ? -1 : 1),
+    snapshots: pick('snapshots'), feedback: pick('feedback')
+  };
+}
+function bundleCsvs(b) {
+  const pl = c => (b.game.players && b.game.players[c] && b.game.players[c].name) || '';
+  const ev = [['round', 'phase', 'time', 'player', 'player_name', 'type', 'description', 'note', 'data_json']];
+  b.events.forEach(e => ev.push([e.round, e.phase, e.t, e.player || '', e.player && e.player !== 'Table' ? pl(e.player) : '', e.type,
+    plain(describe(e)), (e.data && e.data.note) || '', JSON.stringify(e.data || {})]));
+  const src = SOURCES.map(x => x.id);
+  const sc = [['round', 'colour', 'name', 'seat', 'score_on_track', 'wealth', 'workers'].concat(src.map(x => 'pts_' + x))];
+  Object.keys(b.snapshots).sort((a, c) => (a === 'rfinal' ? 99 : +a.slice(1)) - (c === 'rfinal' ? 99 : +c.slice(1))).forEach(k => {
+    COLORS.forEach(c => {
+      const p = b.snapshots[k][c.id] || {};
+      sc.push([k === 'rfinal' ? 'final' : k.slice(1), c.id, pl(c.id), (b.game.players && b.game.players[c.id] && b.game.players[c.id].seat) || '',
+        p.score ?? '', p.wealth ?? '', p.workers ?? ''].concat(src.map(x => (p.pts && p.pts[x]) ?? '')));
+    });
+  });
+  return { events: toCsv(ev), scores: toCsv(sc) };
+}
+async function exportGame(id) {
+  const b = gameBundle(id);
+  const base = 'ctta-' + slug(b.game && b.game.name) + '-' + new Date().toISOString().slice(0, 10);
+  const csv = bundleCsvs(b);
+  const files = [
+    new File([JSON.stringify(b, null, 1)], base + '.json', { type: 'application/json' }),
+    new File([csv.events], base + '-events.csv', { type: 'text/csv' }),
+    new File([csv.scores], base + '-scores.csv', { type: 'text/csv' })
+  ];
+  let shared = false;
+  try {
+    if (navigator.canShare && navigator.canShare({ files })) {
+      await navigator.share({ files, title: (b.game && b.game.name) || 'Playtest' });
+      shared = true;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') { setStatus('Export cancelled'); return; } }
+  if (!shared) {
+    files.forEach((f, i) => setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(f); a.download = f.name;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    }, i * 400));
+  }
+  const g = Object.assign({}, db.raw('games/' + id), { exportedAt: new Date().toISOString() });
+  await db.doc('games/' + id).set(g);
+  setStatus('Exported ' + ((b.game && b.game.name) || 'game') + (shared ? '' : ' (check your Downloads)'));
+  renderGames();
+}
+function renderGames() {
+  const el = $('gameList');
+  if (!el || !db) return;
+  const ids = gameIds().sort((a, b) => ((db.raw('games/' + b) || {}).createdAt || '') < ((db.raw('games/' + a) || {}).createdAt || '') ? -1 : 1);
+  el.innerHTML = ids.map(id => {
+    const g = db.raw('games/' + id) || {};
+    const n = db.keys().filter(k => k.startsWith('games/' + id + '/events/')).length;
+    const when = g.createdAt ? new Date(g.createdAt).toLocaleDateString() : '';
+    const exp = g.exportedAt ? 'exported ' + new Date(g.exportedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : 'not exported yet';
+    const stage = !g.round ? 'not started' : g.round > ROUNDS ? 'finished' : 'round ' + g.round;
+    return `<div class="gamerow"><div style="min-width:0"><div class="gname">${esc(g.name || id)} ${id === gid ? '<span class="badge-now">· open</span>' : ''}</div>
+      <div class="gmeta">${esc(when)} · ${stage} · ${n} entries · ${exp}</div></div>
+      <div class="row">${id === gid ? '' : `<button class="btn small" data-open="${id}">Open</button>`}<button class="btn small" data-export="${id}">Export</button><button class="btn small" data-delgame="${id}">Delete</button></div></div>`;
+  }).join('') || '<p class="hint">No games yet.</p>';
+}
+function renderExportNag() {
+  const g = db && gid ? db.raw('games/' + gid) : null;
+  const n = g ? db.keys().filter(k => k.startsWith('games/' + gid + '/events/')).length : 0;
+  const stale = g && n > 0 && (!g.exportedAt || events.some(e => e.t > g.exportedAt));
+  $('exportNag').hidden = !stale;
+  if (stale) $('exportNagText').textContent = g.exportedAt ? 'New entries since the last export.' : 'This game hasn’t been exported yet. Export after each session to keep a copy.';
+}
+$('exportNow').onclick = () => gid && exportGame(gid);
+$('gameList').addEventListener('click', async e => {
+  const o = e.target.closest('[data-open]'), x = e.target.closest('[data-export]'), d = e.target.closest('[data-delgame]');
+  if (o) { await db.doc('meta/current').set({ gid: o.dataset.open }); showTab('log'); }
+  if (x) exportGame(x.dataset.export);
+  if (d) {
+    if (d.dataset.confirm !== '1') { d.dataset.confirm = '1'; d.textContent = 'Tap again to delete'; setTimeout(() => { d.dataset.confirm = ''; d.textContent = 'Delete'; }, 3000); return; }
+    const id = d.dataset.delgame;
+    db.removePrefix('games/' + id);
+    if (id === gid) {
+      const left = gameIds();
+      if (left.length) await db.doc('meta/current').set({ gid: left[0] });
+      else { await db.doc('meta/current').delete(); }
+    }
+    setStatus('Game deleted'); renderGames();
+  }
+});
+$('importFile').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const b = JSON.parse(await f.text());
+    if (b.app !== 'CTTA playtest logbook' || !b.game) throw new Error('not a logbook file');
+    let id = b.gameId || ('pt-import-' + Date.now().toString(36));
+    if (db.raw('games/' + id)) id = id + '-copy-' + Math.random().toString(36).slice(2, 5);
+    await db.doc('games/' + id).set(b.game);
+    for (const ev of b.events || []) { const { id: eid, ...rest } = ev; await db.doc(`games/${id}/events/${eid}`).set(rest); }
+    for (const [k, v] of Object.entries(b.snapshots || {})) await db.doc(`games/${id}/snapshots/${k}`).set(v);
+    for (const [k, v] of Object.entries(b.feedback || {})) await db.doc(`games/${id}/feedback/${k}`).set(v);
+    await db.doc('meta/current').set({ gid: id });
+    setStatus('Imported ' + (b.game.name || 'game'));
+    renderGames();
+  } catch (err) { setStatus('That file isn’t a logbook export. Pick the .json file the app exported.', true); }
+});
+
+/* ---------- Boot ---------- */
+renderPhase(); renderTypes(); renderRecent();
+renderPlayerPicker($('pickPlayer'), curPlayer, true, pick);
+$('nextPhase').disabled = true; $('prevPhase').disabled = true;
+
+function attach(id) {
+  unsubs.forEach(u => u()); unsubs = [];
+  gid = id; events = []; snaps = {}; feedback = {};
+  unsubs.push(db.doc(`games/${gid}`).onSnapshot(s => {
+    if (s.exists) { const d = s.data(); game = Object.assign({ name: '', round: 0, phase: 0, side: 'A', first: 'Ivory', players: {} }, JSON.parse(JSON.stringify(d))); }
+    renderPhase(); renderTypes(); renderRecent(); pick(curPlayer); renderExportNag(); renderGames();
+  }, err));
+  unsubs.push(db.collection(`games/${gid}/events`).onSnapshot(s => {
+    events = s.docs.map(d => Object.assign({ id: d.id }, d.data())).sort((a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : 0);
+    renderRecent(); renderExportNag(); if (!$('tab-timeline').hidden) renderTimeline();
+  }, err));
+  unsubs.push(db.collection(`games/${gid}/snapshots`).onSnapshot(s => {
+    snaps = {}; s.docs.forEach(d => { snaps[d.id] = d.data(); });
+    if (!$('tab-scores').hidden) renderScoreHistory();
+  }, err));
+  unsubs.push(db.collection(`games/${gid}/feedback`).onSnapshot(s => {
+    feedback = {}; s.docs.forEach(d => { feedback[d.id] = d.data(); });
+    if (!$('tab-feedback').hidden && !document.activeElement.closest('#fbForm')) renderFeedback();
+  }, err));
+}
+function err() { setStatus('Something went wrong reading the saved log. Reload the app.', true); }
+document.querySelectorAll('[role=tab]').forEach(b => b.addEventListener('click', () => { if (b.dataset.tab === 'timeline') renderTimeline(); }));
+
+(async () => {
+  db = makeLocalDb();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (_) {}
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  db.doc('meta/current').onSnapshot(async s => {
+    let id = s.exists && s.data().gid;
+    if (!id) {
+      id = 'pt-1';
+      await write(`games/${id}`, { name: 'Playtest 1', round: 0, phase: 0, side: 'A', first: 'Ivory', players: {}, createdAt: new Date().toISOString() });
+      await write('meta/current', { gid: id });
+      return;
+    }
+    if (id !== gid) attach(id);
+    setStatus('Ready · saved on this phone as you go');
+    renderGames();
+  }, err);
+})();
+</script>
+</body>
+</html>
